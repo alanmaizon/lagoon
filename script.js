@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', function () {
+  const actx = new (window.AudioContext || window.webkitAudioContext)();
   const keys = document.querySelectorAll('#piano-keyboard .white-key, #piano-keyboard .black-key');
   const activeOscillators = {};
   const volumeControl = document.getElementById('volume');
@@ -15,11 +16,57 @@ document.addEventListener('DOMContentLoaded', function () {
   let sustainValue = sustainControl.value;
   let releaseValue = releaseControl.value;
 
+  let loopSource = null;
+  let loopBuffer = null;
+
   volumeControl.addEventListener('input', (e) => volumeValue = e.target.value);
   attackControl.addEventListener('input', (e) => attackValue = e.target.value);
   decayControl.addEventListener('input', (e) => decayValue = e.target.value);
   sustainControl.addEventListener('input', (e) => sustainValue = e.target.value);
   releaseControl.addEventListener('input', (e) => releaseValue = e.target.value);
+
+  function loadLoop(url) {
+    fetch(url)
+      .then(response => response.arrayBuffer())
+      .then(data => actx.decodeAudioData(data))
+      .then(buffer => {
+        loopBuffer = buffer;
+      })
+      .catch(error => console.error('Error loading the audio loop:', error));
+  }
+
+  function playLoop() {
+    if (loopBuffer) {
+      loopSource = actx.createBufferSource();
+      loopSource.buffer = loopBuffer;
+      loopSource.loop = true;
+  
+      // Optionally set loopStart and loopEnd to loop a specific segment
+      // loopSource.loopStart = 0; // Start at the beginning
+      // loopSource.loopEnd = loopBuffer.duration; // Loop till the end
+  
+      loopSource.connect(actx.destination);
+  
+      // Start the loop exactly at the next "audio clock" time to ensure precision
+      loopSource.start(actx.currentTime);
+    }
+  }
+  
+
+  function stopLoop() {
+    if (loopSource) {
+      loopSource.stop();
+      loopSource = null;
+    }
+  }
+
+  loadLoop('groove.mp3');
+
+  const playButton = document.getElementById('play-loop');
+  const stopButton = document.getElementById('stop-loop');
+
+  playButton.addEventListener('click', playLoop);
+  stopButton.addEventListener('click', stopLoop);
 
   function getFrequency(note) {
     const notes = {
@@ -46,9 +93,7 @@ document.addEventListener('DOMContentLoaded', function () {
     oscillator.frequency.value = frequency;
     gainNode.gain.setValueAtTime(0, actx.currentTime);
 
-    // Attack
     gainNode.gain.linearRampToValueAtTime(volumeValue, actx.currentTime + parseFloat(attackValue));
-    // Decay
     gainNode.gain.linearRampToValueAtTime(volumeValue * sustainValue, actx.currentTime + parseFloat(attackValue) + parseFloat(decayValue));
 
     oscillator.connect(gainNode);
