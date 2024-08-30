@@ -21,7 +21,7 @@ Lagoons is an interactive web-based audio playground that lets you create and ma
 
 Check out a live demo [here](https://alanmaizon.github.io/lagoons/).
 
-![Lagoons Demo](back.gif)
+![Lagoons Demo](piano.png)
 
 ## Features
 
